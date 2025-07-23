@@ -30,6 +30,10 @@ class _MapSearchScreenState extends State<MapSearchScreen> {
   Set<Marker> _visibleMarkers = {};
   Set<Marker> _selectedMarkers = {};
   
+  // 詳細表示制御
+  String? _detailRestaurantId;
+  bool _showDetail = false;
+  
   // 湘南台駅の位置（デフォルト表示位置）
   static const LatLng _shonanDaiStation = LatLng(35.341065, 139.486895);
   
@@ -92,7 +96,10 @@ class _MapSearchScreenState extends State<MapSearchScreen> {
                 position: position,
                 infoWindow: InfoWindow(
                   title: name,
-                  snippet: '$category',
+                  snippet: '$category\n$address',
+                  onTap: () {
+                    print('InfoWindow tapped for $name');
+                  },
                 ),
                 onTap: () {
                   _onRestaurantSelected(id);
@@ -120,6 +127,7 @@ class _MapSearchScreenState extends State<MapSearchScreen> {
   }
   
   void _onRestaurantSelected(String restaurantId) {
+    print('店舗が選択されました: $restaurantId');
     setState(() {
       _selectedRestaurantId = restaurantId;
     });
@@ -144,24 +152,70 @@ class _MapSearchScreenState extends State<MapSearchScreen> {
         );
         
         if (selectedMarker.markerId.value != 'empty') {
+          // より詳細なInfoWindowを持つマーカーを作成
+          final enhancedMarker = Marker(
+            markerId: selectedMarker.markerId,
+            position: selectedMarker.position,
+            infoWindow: InfoWindow(
+              title: restaurant['name'] ?? '',
+              snippet: '${restaurant['category'] ?? ''}\n${restaurant['address'] ?? ''}',
+              onTap: () {
+                print('Enhanced InfoWindow tapped for ${restaurant['name']}');
+              },
+            ),
+            onTap: () {
+              _onRestaurantSelected(restaurantId);
+            },
+          );
+          
           setState(() {
-            _selectedMarkers = {selectedMarker};
+            _selectedMarkers = {enhancedMarker};
+          });
+          
+          // マーカーのInfoWindowを表示（少し遅延させる）
+          Future.delayed(Duration(milliseconds: 300), () {
+            _showMarkerInfoWindow(enhancedMarker);
           });
         }
         
+        // カメラを選択された店舗の位置に移動
         _moveCameraToPosition(position);
       }
     }
+  }
+  
+  void _onRestaurantDetailTap(String restaurantId) {
+    setState(() {
+      if (_detailRestaurantId == restaurantId && _showDetail) {
+        // 既に表示中の場合は閉じる
+        _showDetail = false;
+        _detailRestaurantId = null;
+      } else {
+        // 新しい詳細を表示
+        _detailRestaurantId = restaurantId;
+        _showDetail = true;
+      }
+    });
   }
   
   Future<void> _moveCameraToPosition(LatLng position) async {
     try {
       final GoogleMapController controller = await _controller.future;
       await controller.animateCamera(
-        CameraUpdate.newLatLngZoom(position, 16.0),
+        CameraUpdate.newLatLngZoom(position, 17.0),
       );
+      print('カメラを移動しました: ${position.latitude}, ${position.longitude}');
     } catch (e) {
-      // エラーを無視
+      print('カメラ移動エラー: $e');
+    }
+  }
+  
+  Future<void> _showMarkerInfoWindow(Marker marker) async {
+    try {
+      final GoogleMapController controller = await _controller.future;
+      await controller.showMarkerInfoWindow(marker.markerId);
+    } catch (e) {
+      print('InfoWindow表示エラー: $e');
     }
   }
   
@@ -323,6 +377,11 @@ class _MapSearchScreenState extends State<MapSearchScreen> {
                 color: Colors.white,
                 child: Column(
                   children: [
+                    // ステータスバー対応の余白
+                    Container(
+                      height: MediaQuery.of(context).padding.top,
+                      color: Colors.white,
+                    ),
                     // 検索バー
                     Container(
                       padding: const EdgeInsets.all(16),
@@ -379,7 +438,7 @@ class _MapSearchScreenState extends State<MapSearchScreen> {
                       ),
                     ),
                     
-                    // レストランリスト
+                    // レストランリスト（横スクロール）
                     Expanded(
                       child: _isLoading
                           ? const Center(
@@ -423,6 +482,7 @@ class _MapSearchScreenState extends State<MapSearchScreen> {
                                   ),
                                 )
                               : ListView.builder(
+                                  scrollDirection: Axis.horizontal,
                                   padding: const EdgeInsets.symmetric(horizontal: 16),
                                   itemCount: _filteredRestaurants.length,
                                   itemBuilder: (context, index) {
@@ -496,9 +556,9 @@ class _MapSearchScreenState extends State<MapSearchScreen> {
                         initialCameraPosition: _initialCameraPosition,
                         markers: _visibleMarkers.union(_selectedMarkers),
                         mapType: MapType.normal,
-                        zoomGesturesEnabled: _isMapExpanded,
+                        zoomGesturesEnabled: true,
                         zoomControlsEnabled: _isMapExpanded,
-                        scrollGesturesEnabled: _isMapExpanded,
+                        scrollGesturesEnabled: true,
                         rotateGesturesEnabled: _isMapExpanded,
                         tiltGesturesEnabled: _isMapExpanded,
                         buildingsEnabled: true,
@@ -635,7 +695,200 @@ class _MapSearchScreenState extends State<MapSearchScreen> {
               ),
             ),
           ),
+          
+          // 詳細パネル
+          if (_showDetail && _detailRestaurantId != null)
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: _buildDetailPanel(_detailRestaurantId!),
+            ),
         ],
+      ),
+    );
+  }
+  
+  Widget _buildDetailPanel(String restaurantId) {
+    final restaurant = _allRestaurants.firstWhere(
+      (r) => r['id'] == restaurantId,
+      orElse: () => {},
+    );
+    
+    if (restaurant.isEmpty) return SizedBox.shrink();
+    
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.4,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // ハンドル
+          Container(
+            margin: const EdgeInsets.only(top: 8),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          
+          // ヘッダー
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        restaurant['name'] ?? '',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: _getCategoryColor(restaurant['category'] ?? '').withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Text(
+                          restaurant['category'] ?? '',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: _getCategoryColor(restaurant['category'] ?? ''),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () {
+                    setState(() {
+                      _showDetail = false;
+                      _detailRestaurantId = null;
+                    });
+                  },
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+          ),
+          
+          // 詳細情報
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 住所
+                  _buildDetailRow(
+                    Icons.location_on,
+                    '住所',
+                    restaurant['address'] ?? '',
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Google マップリンク
+                  _buildDetailRow(
+                    Icons.map,
+                    'Google マップ',
+                    'マップで開く',
+                    onTap: () {
+                      // Google マップを開く処理
+                      print('Google マップを開く: ${restaurant['googleMapUrl']}');
+                    },
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // 座標情報
+                  _buildDetailRow(
+                    Icons.gps_fixed,
+                    '座標',
+                    '緯度: ${restaurant['latitude']}, 経度: ${restaurant['longitude']}',
+                  ),
+                  
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildDetailRow(IconData icon, String title, String content, {VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.grey[50],
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey[200]!),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: 20,
+              color: Colors.grey[600],
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    content,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (onTap != null)
+              Icon(
+                Icons.arrow_forward_ios,
+                size: 14,
+                color: Colors.grey[400],
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -661,114 +914,223 @@ class _MapSearchScreenState extends State<MapSearchScreen> {
   Widget _buildRestaurantCard(Map<String, String> restaurant) {
     final isSelected = _selectedRestaurantId == restaurant['id'];
     
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: isSelected ? 4 : 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: isSelected 
-          ? BorderSide(color: Colors.blue[300]!, width: 2)
-          : BorderSide.none,
-      ),
-      child: InkWell(
-        onTap: () {
-          _onRestaurantSelected(restaurant['id'] ?? '');
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return Container(
+      width: 280,
+      margin: const EdgeInsets.only(right: 16, bottom: 8, top: 8),
+      child: Card(
+        elevation: isSelected ? 4 : 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: isSelected 
+            ? BorderSide(color: Colors.blue[300]!, width: 2)
+            : BorderSide.none,
+        ),
+        child: InkWell(
+          onTap: () {
+            _onRestaurantSelected(restaurant['id'] ?? '');
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              height: 200,
+              child: Stack(
                 children: [
-                  // レストランアイコン
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      color: _getCategoryColor(restaurant['category'] ?? ''),
-                    ),
-                    child: Icon(
-                      _getCategoryIcon(restaurant['category'] ?? ''),
-                      color: Colors.white,
-                      size: 24,
+                  // 背景画像（プレースホルダー）
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            _getCategoryColor(restaurant['category'] ?? '').withValues(alpha: 0.7),
+                            _getCategoryColor(restaurant['category'] ?? '').withValues(alpha: 0.9),
+                          ],
+                        ),
+                      ),
+                      child: Image.network(
+                        'https://via.placeholder.com/280x200?text=${Uri.encodeComponent(restaurant['name'] ?? '')}',
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  _getCategoryColor(restaurant['category'] ?? '').withValues(alpha: 0.7),
+                                  _getCategoryColor(restaurant['category'] ?? '').withValues(alpha: 0.9),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
                     ),
                   ),
                   
-                  const SizedBox(width: 12),
-                  
-                  // レストラン情報
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // 店舗名
-                        Text(
-                          restaurant['name'] ?? '',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: isSelected ? Colors.blue[700] : Colors.black87,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
+                  // ぼかしオーバーレイ
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.black.withValues(alpha: 0.3),
+                            Colors.black.withValues(alpha: 0.7),
+                          ],
                         ),
-                        
-                        const SizedBox(height: 4),
-                        
-                        // カテゴリ
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _getCategoryColor(restaurant['category'] ?? '').withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            restaurant['category'] ?? '',
+                      ),
+                    ),
+                  ),
+                  
+                  // 店舗情報オーバーレイ
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // 店舗名
+                          Text(
+                            restaurant['name'] ?? '',
                             style: TextStyle(
-                              fontSize: 12,
-                              color: _getCategoryColor(restaurant['category'] ?? ''),
-                              fontWeight: FontWeight.w500,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              shadows: [
+                                Shadow(
+                                  offset: Offset(0, 1),
+                                  blurRadius: 3,
+                                  color: Colors.black.withValues(alpha: 0.5),
+                                ),
+                              ],
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          
+                          const SizedBox(height: 8),
+                          
+                          // カテゴリ
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.9),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Text(
+                              restaurant['category'] ?? '',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: _getCategoryColor(restaurant['category'] ?? ''),
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
+                          
+                          const SizedBox(height: 8),
+                          
+                          // 住所
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.location_on,
+                                size: 14,
+                                color: Colors.white.withValues(alpha: 0.9),
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  restaurant['address'] ?? '',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.white.withValues(alpha: 0.9),
+                                    shadows: [
+                                      Shadow(
+                                        offset: Offset(0, 1),
+                                        blurRadius: 2,
+                                        color: Colors.black.withValues(alpha: 0.5),
+                                      ),
+                                    ],
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  
+                  // 詳細ボタン
+                  Positioned(
+                    bottom: 16,
+                    right: 16,
+                    child: GestureDetector(
+                      onTap: () => _onRestaurantDetailTap(restaurant['id'] ?? ''),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.9),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.blue[600]!, width: 1),
                         ),
-                        
-                        const SizedBox(height: 8),
-                        
-                        // 住所
-                        Row(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              Icons.location_on,
-                              size: 14,
-                              color: Colors.grey[500],
+                              Icons.info_outline,
+                              size: 16,
+                              color: Colors.blue[600],
                             ),
                             const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                restaurant['address'] ?? '',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey[600],
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                            Text(
+                              '詳細',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.blue[600],
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
+                  
+                  // 選択インジケーター
+                  if (isSelected)
+                    Positioned(
+                      top: 12,
+                      right: 12,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.blue[600],
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Icon(
+                          Icons.check,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                      ),
+                    ),
                 ],
               ),
-            ],
+            ),
           ),
         ),
       ),
