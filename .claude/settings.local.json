@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__gemini-cli__ask-gemini",
+      "Bash(flutter:*)",
+      "Bash(rm:*)",
+      "Bash(pkill:*)",
+      "Bash(grep:*)"
+    ],
+    "deny": []
+  }
+}

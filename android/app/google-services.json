@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "791734977318",
+    "project_id": "reina-0414",
+    "storage_bucket": "reina-0414.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:791734977318:android:67ff33a347dbc1709077e7",
+        "android_client_info": {
+          "package_name": "com.example.my_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD-brlh1PvxcB_1tfy-LJFISTmzkhzy1vA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
