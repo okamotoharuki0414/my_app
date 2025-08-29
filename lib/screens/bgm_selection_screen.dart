@@ -90,7 +90,6 @@ class _BgmSelectionScreenState extends State<BgmSelectionScreen> {
             _buildSearchBar(),
             _buildGenreFilter(),
             Expanded(child: _buildBgmList()),
-            if (_selectedBgmId != null) _buildBottomControls(),
           ],
         ),
       ),
@@ -140,10 +139,18 @@ class _BgmSelectionScreenState extends State<BgmSelectionScreen> {
             _searchQuery = value;
           });
         },
-        style: const TextStyle(color: Colors.white),
-        decoration: const InputDecoration(
-          hintText: 'BGMを検索',
-          hintStyle: TextStyle(color: Colors.grey),
+        style: const TextStyle(
+          fontFamily: 'NotoSansJP',
+          color: Colors.white,
+          fontSize: 16,
+        ),
+        decoration: InputDecoration(
+          hintText: '曲やアーティストを検索',
+          hintStyle: const TextStyle(
+            fontFamily: 'NotoSansJP',
+            color: Colors.grey,
+            fontSize: 16,
+          ),
           prefixIcon: Icon(Icons.search, color: Colors.grey),
           border: InputBorder.none,
           contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
@@ -153,36 +160,44 @@ class _BgmSelectionScreenState extends State<BgmSelectionScreen> {
   }
 
   Widget _buildGenreFilter() {
-    final genres = ['すべて', 'Pop', 'Lofi', 'Hip Hop', 'Acoustic', 'Electronic', 'Jazz'];
+    final genres = ['おすすめ', 'ポップ', 'チル', 'ヒップホップ', 'アコースティック', 'エレクトロ', 'ジャズ'];
     
     return Container(
-      height: 40,
-      margin: const EdgeInsets.symmetric(vertical: 8),
+      height: 50,
+      margin: const EdgeInsets.symmetric(vertical: 12),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: genres.length,
         itemBuilder: (context, index) {
           final genre = genres[index];
-          final isSelected = index == 0; // 仮で「すべて」を選択状態に
+          final isSelected = index == 0; // 「おすすめ」を選択状態に
           
           return Container(
-            margin: const EdgeInsets.only(right: 8),
-            child: FilterChip(
-              label: Text(
-                genre,
-                style: TextStyle(
-                  color: isSelected ? Colors.black : Colors.white,
-                  fontSize: 14,
+            margin: const EdgeInsets.only(right: 12),
+            child: GestureDetector(
+              onTap: () {
+                // ジャンルフィルタ機能
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                decoration: BoxDecoration(
+                  color: isSelected ? Colors.white : Colors.transparent,
+                  borderRadius: BorderRadius.circular(25),
+                  border: Border.all(
+                    color: isSelected ? Colors.white : Colors.grey[600]!,
+                    width: 1.5,
+                  ),
+                ),
+                child: Text(
+                  genre,
+                  style: TextStyle(
+                    color: isSelected ? Colors.black : Colors.white,
+                    fontSize: 14,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                  ),
                 ),
               ),
-              selected: isSelected,
-              onSelected: (selected) {
-                // ジャンルフィルタ機能は後で実装
-              },
-              backgroundColor: Colors.grey[800],
-              selectedColor: Colors.white,
-              checkmarkColor: Colors.black,
             ),
           );
         },
@@ -199,209 +214,159 @@ class _BgmSelectionScreenState extends State<BgmSelectionScreen> {
         final isSelected = _selectedBgmId == bgm.id;
         final isPlaying = _playingBgmId == bgm.id && _isPlaying;
 
-        return Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          decoration: BoxDecoration(
-            color: isSelected ? Colors.white.withOpacity(0.1) : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            leading: Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.network(
-                    bgm.imageUrl,
-                    width: 60,
-                    height: 60,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      width: 60,
-                      height: 60,
-                      color: Colors.grey[800],
-                      child: const Icon(Icons.music_note, color: Colors.white),
-                    ),
-                  ),
-                ),
-                if (isPlaying)
-                  Positioned.fill(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.5),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.pause,
-                          color: Colors.white,
-                          size: 24,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
+        return GestureDetector(
+          onTap: () {
+            setState(() {
+              _selectedBgmId = bgm.id;
+            });
+            // Instagram風にタップで即座に選択して戻る
+            Navigator.pop(context, bgm);
+          },
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isSelected ? Colors.white.withOpacity(0.15) : Colors.grey[900],
+              borderRadius: BorderRadius.circular(16),
+              border: isSelected 
+                ? Border.all(color: Colors.white, width: 2)
+                : null,
             ),
-            title: Text(
-              bgm.title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
-                Text(
-                  bgm.artist,
-                  style: const TextStyle(
-                    color: Colors.grey,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Row(
+                // アルバムアート
+                Stack(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[800],
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        bgm.genre,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(
+                        bgm.imageUrl,
+                        width: 56,
+                        height: 56,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          width: 56,
+                          height: 56,
+                          color: Colors.grey[700],
+                          child: const Icon(Icons.music_note, color: Colors.white, size: 28),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      bgm.duration,
-                      style: const TextStyle(
-                        color: Colors.grey,
-                        fontSize: 12,
+                    // 再生ボタンオーバーレイ
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Center(
+                          child: GestureDetector(
+                            onTap: () {
+                              _togglePlayback(bgm.id);
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.6),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                isPlaying ? Icons.pause : Icons.play_arrow,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ],
                 ),
-              ],
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  onPressed: () {
-                    _togglePlayback(bgm.id);
-                  },
-                  icon: Icon(
-                    isPlaying ? Icons.pause_circle : Icons.play_circle,
-                    color: Colors.white,
-                    size: 32,
+                const SizedBox(width: 16),
+                // BGM情報
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        bgm.title,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        bgm.artist,
+                        style: TextStyle(
+                          color: Colors.grey[400],
+                          fontSize: 14,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              bgm.genre,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Icon(
+                            Icons.access_time,
+                            size: 12,
+                            color: Colors.grey[400],
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            bgm.duration,
+                            style: TextStyle(
+                              color: Colors.grey[400],
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-                Radio<String>(
-                  value: bgm.id,
-                  groupValue: _selectedBgmId,
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedBgmId = value;
-                    });
-                  },
-                  activeColor: Colors.white,
-                ),
+                // 選択インジケーター
+                if (isSelected)
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.check,
+                      color: Colors.black,
+                      size: 16,
+                    ),
+                  ),
               ],
             ),
-            onTap: () {
-              setState(() {
-                _selectedBgmId = bgm.id;
-              });
-            },
           ),
         );
       },
     );
   }
 
-  Widget _buildBottomControls() {
-    final selectedBgm = _bgmList.firstWhere((bgm) => bgm.id == _selectedBgmId);
-    
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey[900],
-        border: Border(
-          top: BorderSide(color: Colors.grey[800]!, width: 1),
-        ),
-      ),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.network(
-              selectedBgm.imageUrl,
-              width: 50,
-              height: 50,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Container(
-                width: 50,
-                height: 50,
-                color: Colors.grey[800],
-                child: const Icon(Icons.music_note, color: Colors.white, size: 20),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  selectedBgm.title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Text(
-                  selectedBgm.artist,
-                  style: const TextStyle(
-                    color: Colors.grey,
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              // 選択したBGMを返す
-              Navigator.pop(context, selectedBgm);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.black,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(25),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            ),
-            child: const Text(
-              '完了',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   void _togglePlayback(String bgmId) {
     setState(() {

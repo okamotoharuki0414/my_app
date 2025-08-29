@@ -7,7 +7,7 @@ import 'package:geolocator/geolocator.dart';
 /// 湘南台駅中心のGoogle Maps実装
 /// 地図の背景表示問題を解決した確実な実装
 class ShonanDaiMapsScreen extends StatefulWidget {
-  const ShonanDaiMapsScreen({Key? key}) : super(key: key);
+  const ShonanDaiMapsScreen({super.key});
 
   @override
   State<ShonanDaiMapsScreen> createState() => _ShonanDaiMapsScreenState();
@@ -26,7 +26,7 @@ class _ShonanDaiMapsScreenState extends State<ShonanDaiMapsScreen> {
     zoom: 16.0, // 駅周辺がよく見えるズームレベル
   );
 
-  Set<Marker> _markers = {};
+  final Set<Marker> _markers = {};
   bool _mapReady = false;
 
   @override

@@ -5,7 +5,7 @@ import 'dart:async';
 /// Google Maps标准显示测试画面
 /// 最小限の設定で確実にGoogle標準地図を表示する
 class TestGoogleMapsScreen extends StatefulWidget {
-  const TestGoogleMapsScreen({Key? key}) : super(key: key);
+  const TestGoogleMapsScreen({super.key});
 
   @override
   State<TestGoogleMapsScreen> createState() => _TestGoogleMapsScreenState();

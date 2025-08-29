@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/services.dart';
 import '../models/restaurant.dart';
 
@@ -95,7 +94,7 @@ class CsvRestaurantService {
       }
 
       return Restaurant(
-        id: 'csv_${lineNumber}',
+        id: 'csv_$lineNumber',
         name: name,
         category: category,
         address: address,

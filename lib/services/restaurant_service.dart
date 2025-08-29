@@ -2,11 +2,7 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import '../models/restaurant.dart';
-import 'geocoding_service.dart';
-import 'url_coordinate_service.dart';
 import 'csv_parser_service.dart';
-import 'address_geocoding_service.dart';
-import '../data/restaurant_data.dart';
 import '../data/restaurant_data_complete.dart';
 
 class RestaurantService {
@@ -80,7 +76,7 @@ class RestaurantService {
     if (response.statusCode == 200) {
       final csvData = utf8.decode(response.bodyBytes);
       print('📄 CSV データ取得成功 (${csvData.length} 文字)');
-      print('📄 CSV データの最初の500文字: ${csvData.length > 500 ? csvData.substring(0, 500) + "..." : csvData}');
+      print('📄 CSV データの最初の500文字: ${csvData.length > 500 ? "${csvData.substring(0, 500)}..." : csvData}');
       
       // CSVをパース
       final lines = csvData.split('\n');

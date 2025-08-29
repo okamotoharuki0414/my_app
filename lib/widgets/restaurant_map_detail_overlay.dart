@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../models/restaurant.dart';
-import '../models/post.dart';
 
 class RestaurantMapDetailOverlay extends StatelessWidget {
   final Restaurant restaurant;

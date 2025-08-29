@@ -232,7 +232,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
                 // Attachment button
                 Padding(
                   padding: const EdgeInsets.all(AppDimensions.paddingSmall),
-                  child: Container(
+                  child: SizedBox(
                     width: AppDimensions.sectionSpacing,
                     height: AppDimensions.sectionSpacing,
                     child: const Icon(
@@ -262,7 +262,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
                 // Send button
                 Padding(
                   padding: const EdgeInsets.all(AppDimensions.paddingMedium),
-                  child: Container(
+                  child: SizedBox(
                     width: AppDimensions.iconLargeSize,
                     height: AppDimensions.iconLargeSize,
                     child: const Icon(

@@ -26,7 +26,7 @@ class AddressGeocodingService {
         final coordinate = await _getCoordinateFromAddress(address, i);
         result[address] = coordinate;
         
-        print('✅ 住所変換完了: ${address.length > 30 ? address.substring(0, 30) + "..." : address} -> ${coordinate?.latitude}, ${coordinate?.longitude}');
+        print('✅ 住所変換完了: ${address.length > 30 ? "${address.substring(0, 30)}..." : address} -> ${coordinate?.latitude}, ${coordinate?.longitude}');
       } catch (e) {
         // エラーの場合は分散配置座標を使用
         final latOffset = (i % 10 - 5) * 0.002; // -0.01 to 0.01度

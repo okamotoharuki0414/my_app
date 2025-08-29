@@ -16,7 +16,7 @@ class PhotoPickerModal extends StatefulWidget {
 
 class _PhotoPickerModalState extends State<PhotoPickerModal> {
   final ImagePicker _picker = ImagePicker();
-  List<XFile> _images = [];
+  final List<XFile> _images = [];
 
   @override
   void initState() {

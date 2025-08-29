@@ -22,6 +22,14 @@ class RestaurantInfoTab extends StatelessWidget {
           color: Colors.grey[200],
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: Colors.grey[300]!),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+              spreadRadius: 0,
+            ),
+          ],
         ),
         child: Row(
           children: [
