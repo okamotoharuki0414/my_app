@@ -1,0 +1,157 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Inter', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+  overflow-x: hidden;
+  font-feature-settings: 'kern' 1, 'liga' 1;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* スムーズスクロール */
+html {
+  scroll-behavior: smooth;
+}
+
+/* カスタムスクロールバー */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+/* テキストアニメーション用 */
+.text-gradient {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* バックドロップブラー強化 */
+.backdrop-blur-enhanced {
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+/* ホバーエフェクト */
+.hover-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+/* 業界別テキストエフェクト */
+.text-corporate-glow {
+  text-shadow: 0 0 20px rgba(59, 130, 246, 0.5), 0 0 40px rgba(59, 130, 246, 0.3);
+}
+
+.text-manufacturing-bold {
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.8), 4px 4px 8px rgba(0, 0, 0, 0.5);
+}
+
+.text-medical-soft {
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.1), 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+.text-fashion-gradient {
+  background: linear-gradient(45deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
+  background-size: 400% 400%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradientShift 3s ease-in-out infinite;
+}
+
+.text-restaurant-elegant {
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7), 0 0 25px rgba(255, 183, 3, 0.4);
+}
+
+.text-beauty-delicate {
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.3), 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.text-realestate-strong {
+  text-shadow: 3px 3px 0 rgba(0, 0, 0, 0.9), 6px 6px 12px rgba(0, 0, 0, 0.4);
+}
+
+.text-saas-modern {
+  text-shadow: 0 0 15px rgba(139, 92, 246, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.text-recruitment-warm {
+  text-shadow: 0 0 20px rgba(249, 115, 22, 0.4), 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+/* アニメーション */
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes textPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+.text-pulse {
+  animation: textPulse 2s ease-in-out infinite;
+}
+
+/* 業界別ボタンスタイル */
+.btn-corporate {
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+  transition: all 0.3s ease;
+}
+
+.btn-corporate:hover {
+  box-shadow: 0 0 30px rgba(59, 130, 246, 0.5), 0 5px 20px rgba(0, 0, 0, 0.2);
+}
+
+.btn-manufacturing {
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  transform: perspective(500px) rotateX(0deg);
+  transition: all 0.3s ease;
+}
+
+.btn-manufacturing:hover {
+  transform: perspective(500px) rotateX(-5deg) translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+}
