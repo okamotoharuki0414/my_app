@@ -7,7 +7,7 @@ import '../services/restaurant_service.dart';
 /// シンプルなGoogle Maps実装
 /// 確実に地図背景（道路・地形・ラベル）を表示する
 class SimpleGoogleMapsScreen extends StatefulWidget {
-  const SimpleGoogleMapsScreen({Key? key}) : super(key: key);
+  const SimpleGoogleMapsScreen({super.key});
 
   @override
   State<SimpleGoogleMapsScreen> createState() => _SimpleGoogleMapsScreenState();
@@ -15,7 +15,7 @@ class SimpleGoogleMapsScreen extends StatefulWidget {
 
 class _SimpleGoogleMapsScreenState extends State<SimpleGoogleMapsScreen> {
   final Completer<GoogleMapController> _controller = Completer();
-  Set<Marker> _markers = {};
+  final Set<Marker> _markers = {};
   List<Restaurant> _restaurants = [];
 
   // 湘南台駅付近の座標（確実に地図が表示される場所）

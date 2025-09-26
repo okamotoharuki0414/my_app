@@ -32,8 +32,8 @@ class AppDimensions {
   static const double borderRegular = 1.0;
   
   // Header height
-  static const double headerHeight = 106.0;
-  static const double tabBarHeight = 42.0;
+  static const double headerHeight = 166.0;
+  static const double tabBarHeight = 52.0;
   
   // Bottom navigation
   static const double bottomNavHeight = 119.0;

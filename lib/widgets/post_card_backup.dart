@@ -6,6 +6,7 @@ import '../constants/app_colors.dart';
 import '../constants/app_text_styles.dart';
 import '../constants/app_dimensions.dart';
 import '../screens/comments_screen.dart';
+import '../screens/post_detail_screen.dart';
 import '../widgets/post_options_overlay.dart';
 import '../widgets/star_rating.dart';
 import '../widgets/restaurant_info_tab.dart';
@@ -161,28 +162,28 @@ class _PostCardState extends State<PostCard> {
     return Stack(
       children: [
         Container(
-          width: double.infinity,
-          margin: const EdgeInsets.symmetric(
-            horizontal: 16.0,
-            vertical: 4.0,
-          ),
-          decoration: BoxDecoration(
-            color: AppColors.background,
-            border: Border(
-              bottom: BorderSide(
-                color: AppColors.border,
-                width: AppDimensions.borderThin,
+            width: double.infinity,
+            margin: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 4.0,
+            ),
+            decoration: BoxDecoration(
+              color: AppColors.background,
+              border: Border(
+                bottom: BorderSide(
+                  color: AppColors.border,
+                  width: AppDimensions.borderThin,
+                ),
               ),
             ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-          // Header with avatar, name, badge, timestamp
-          Padding(
-            padding: const EdgeInsets.all(AppDimensions.paddingMedium),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Header with avatar, name, badge, timestamp
+                Padding(
+                  padding: const EdgeInsets.all(AppDimensions.paddingMedium),
+                  child: Row(
+                    children: [
                 // Avatar
                 GestureDetector(
                   onTap: () {
@@ -267,67 +268,37 @@ class _PostCardState extends State<PostCard> {
                   iconSize: AppDimensions.iconLargeSize,
                   color: Colors.black,
                 ),
-              ],
-            ),
-          ),
-          // Star ratings (if exists) - 投稿文の一番上に表示
-          if (widget.post.rating != null && widget.post.rating!.hasAnyRating)
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppDimensions.paddingMedium,
-                vertical: AppDimensions.paddingSmall,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (widget.post.rating!.overall != null)
-                    StarRating(
-                      rating: widget.post.rating!.overall,
-                      label: '全体',
+                    ],
+                  ),
+                ),
+                // Star ratings (if exists) - 最高評価のみ表示
+                if (widget.post.rating != null && widget.post.rating!.hasAnyRating)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppDimensions.paddingMedium,
+                      vertical: AppDimensions.paddingSmall,
                     ),
-                  if (widget.post.rating!.food != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: StarRating(
-                        rating: widget.post.rating!.food,
-                        label: '食事',
-                      ),
+                    child: StarRating(
+                      rating: widget.post.rating!.highestRating,
+                      label: widget.post.rating!.highestRatingCategory ?? '',
                     ),
-                  if (widget.post.rating!.service != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: StarRating(
-                        rating: widget.post.rating!.service,
-                        label: 'サービス',
-                      ),
-                    ),
-                  if (widget.post.rating!.value != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: StarRating(
-                        rating: widget.post.rating!.value,
-                        label: 'コスパ',
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          // Content
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppDimensions.paddingMedium,
-              vertical: AppDimensions.paddingSmall,
-            ),
-            child: Text(
-              widget.post.content,
-              style: AppTextStyles.body,
-            ),
-          ),
-          // BGM (if exists)
-          if (widget.post.bgm != null)
-            _buildBgmSection(),
-          // Image (if exists)
-          if (widget.post.imageUrl != null)
+                  ),
+                // Content
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppDimensions.paddingMedium,
+                    vertical: AppDimensions.paddingSmall,
+                  ),
+                  child: Text(
+                    widget.post.content,
+                    style: AppTextStyles.body,
+                  ),
+                ),
+                // BGM (if exists)
+                if (widget.post.bgm != null)
+                  _buildBgmSection(),
+                // Image (if exists)
+                if (widget.post.imageUrl != null)
             Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: AppDimensions.paddingMedium,
@@ -461,7 +432,7 @@ class _PostCardState extends State<PostCard> {
                       _sharePost();
                     }
                   },
-                  child: Container(
+                  child: SizedBox(
                     width: AppDimensions.iconSize,
                     height: AppDimensions.iconSize,
                     child: Icon(
@@ -493,10 +464,9 @@ class _PostCardState extends State<PostCard> {
                     ),
                   ),
                 ),
-              ],
+                ],
+              ),
             ),
-          ),
-            ],
           ),
         ),
         // ローカルオーバーレイ
@@ -538,6 +508,7 @@ class _PostCardState extends State<PostCard> {
               ],
             ),
           ),
+        ),
       ],
     );
   }

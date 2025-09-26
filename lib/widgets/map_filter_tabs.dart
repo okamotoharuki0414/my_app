@@ -80,7 +80,7 @@ class _MapFilterTabsState extends State<MapFilterTabs> {
   }
 
   OverlayEntry? _overlayEntry;
-  GlobalKey _filterKey = GlobalKey();
+  final GlobalKey _filterKey = GlobalKey();
 
   void _showDropdown(String groupKey, int index) {
     _removeDropdown();

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../constants/app_colors.dart';
 
 class InlineCameraMenu extends StatefulWidget {
   final bool isExpanded;
@@ -57,6 +56,9 @@ class _InlineCameraMenuState extends State<InlineCameraMenu>
   Widget build(BuildContext context) {
     print('Building InlineCameraMenu, isExpanded: ${widget.isExpanded}'); // デバッグ用
     return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.4, // 画面の40%まで
+      ),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -65,6 +67,7 @@ class _InlineCameraMenuState extends State<InlineCameraMenu>
         ),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           _buildMenuGrid(),
         ],

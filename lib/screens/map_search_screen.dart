@@ -3,6 +3,8 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'dart:async';
 import 'package:flutter/services.dart';
 import 'dart:convert';
+import '../constants/app_ikyu_styles.dart';
+import '../widgets/airbnb_hero_animation.dart';
 
 class MapSearchScreen extends StatefulWidget {
   const MapSearchScreen({super.key});
@@ -20,10 +22,10 @@ class _MapSearchScreenState extends State<MapSearchScreen> {
   bool _isMapExpanded = false;
   
   // 店舗データ管理
-  List<Map<String, String>> _allRestaurants = [];
+  final List<Map<String, String>> _allRestaurants = [];
   List<Map<String, String>> _filteredRestaurants = [];
   String? _selectedRestaurantId;
-  List<String> _selectedFilters = [];
+  final List<String> _selectedFilters = [];
   String _searchQuery = '';
   
   // マーカー表示制御
@@ -230,19 +232,61 @@ class _MapSearchScreenState extends State<MapSearchScreen> {
 
         if (!matchesSearch) return false;
 
-        // カテゴリフィルター
-        List<String> categoryFilters = _selectedFilters.where((f) => f.startsWith('category_')).toList();
-        if (categoryFilters.isNotEmpty) {
-          bool matchesCategory = false;
+        // カテゴリ・フィルター処理
+        if (_selectedFilters.isNotEmpty) {
+          bool matchesFilter = true;
           final category = restaurant['category'] ?? '';
-          if (categoryFilters.contains('category_italian') && category == 'イタリアン') matchesCategory = true;
-          if (categoryFilters.contains('category_yakiniku') && category == '焼肉') matchesCategory = true;
-          if (categoryFilters.contains('category_seafood') && category == '魚介料理') matchesCategory = true;
-          if (categoryFilters.contains('category_sushi') && category == '寿司') matchesCategory = true;
-          if (categoryFilters.contains('category_izakaya') && category == '居酒屋') matchesCategory = true;
-          if (categoryFilters.contains('category_yakitori') && category == '焼き鳥') matchesCategory = true;
+          final name = restaurant['name'] ?? '';
           
-          if (!matchesCategory) return false;
+          // 現在営業中フィルター（簡易実装 - 実際の営業時間データが必要）
+          if (_selectedFilters.contains('filter_open_now')) {
+            // TODO: 実際の営業時間データと現在時刻を比較
+            matchesFilter = true; // 暫定的に全店舗対象
+          }
+          
+          // 高評価フィルター（簡易実装 - 実際の評価データが必要）
+          if (_selectedFilters.contains('filter_high_rating')) {
+            // TODO: 実際の評価データを比較
+            matchesFilter = true; // 暫定的に全店舗対象
+          }
+          
+          // 肉系カテゴリ
+          if (_selectedFilters.contains('category_meat')) {
+            matchesFilter = category.contains('焼肉') || category.contains('焼き鳥') || 
+                           category.contains('ステーキ') || category.contains('ハンバーグ') ||
+                           name.contains('肉') || name.contains('焼肉') || name.contains('焼き鳥');
+          }
+          
+          // 魚系カテゴリ
+          if (_selectedFilters.contains('category_seafood')) {
+            matchesFilter = category.contains('魚介') || category.contains('寿司') || 
+                           category.contains('海鮮') || category.contains('刺身') ||
+                           name.contains('魚') || name.contains('寿司') || name.contains('海鮮');
+          }
+          
+          // 麺類カテゴリ
+          if (_selectedFilters.contains('category_noodles')) {
+            matchesFilter = category.contains('ラーメン') || category.contains('うどん') || 
+                           category.contains('そば') || category.contains('パスタ') ||
+                           category.contains('イタリアン') ||
+                           name.contains('麺') || name.contains('ラーメン') || name.contains('うどん') ||
+                           name.contains('そば') || name.contains('パスタ');
+          }
+          
+          // カフェカテゴリ
+          if (_selectedFilters.contains('category_cafe')) {
+            matchesFilter = category.contains('カフェ') || category.contains('喫茶') || 
+                           category.contains('コーヒー') ||
+                           name.contains('カフェ') || name.contains('喫茶') || name.contains('コーヒー');
+          }
+          
+          // お手頃フィルター（簡易実装 - 実際の価格データが必要）
+          if (_selectedFilters.contains('filter_affordable')) {
+            // TODO: 実際の価格データを比較
+            matchesFilter = true; // 暫定的に全店舗対象
+          }
+          
+          if (!matchesFilter) return false;
         }
 
         return true;
@@ -254,10 +298,8 @@ class _MapSearchScreenState extends State<MapSearchScreen> {
   }
   
   void _updateMapMarkers() {
-    // カテゴリフィルターが選択されている場合のみマーカーを表示
-    List<String> categoryFilters = _selectedFilters.where((f) => f.startsWith('category_')).toList();
-    
-    if (categoryFilters.isNotEmpty) {
+    // フィルターが選択されている場合のみマーカーを表示
+    if (_selectedFilters.isNotEmpty) {
       // フィルターされた店舗のマーカーを表示
       final filteredMarkers = <Marker>{};
       
@@ -298,6 +340,61 @@ class _MapSearchScreenState extends State<MapSearchScreen> {
       }
     });
     _applyFiltersAndSearch();
+  }
+
+  void _showDetailFilterModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DetailFilterModal(
+        selectedFilters: _selectedFilters,
+        onFiltersChanged: (filters) {
+          setState(() {
+            _selectedFilters.clear();
+            _selectedFilters.addAll(filters);
+          });
+          _applyFiltersAndSearch();
+        },
+      ),
+    );
+  }
+
+  void _openRestaurantDetailScreen(int initialIndex) {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            RestaurantDetailPageView(
+              restaurants: _filteredRestaurants,
+              initialIndex: initialIndex,
+            ),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          // Airbnb風のスケール＋フェードアニメーション
+          const scaleBegin = 0.85;
+          const scaleEnd = 1.0;
+          const fadeBegin = 0.0;
+          const fadeEnd = 1.0;
+          const curve = Curves.easeOutCubic;
+
+          var scaleTween = Tween(begin: scaleBegin, end: scaleEnd).chain(
+            CurveTween(curve: curve),
+          );
+          var fadeTween = Tween(begin: fadeBegin, end: fadeEnd).chain(
+            CurveTween(curve: curve),
+          );
+
+          return ScaleTransition(
+            scale: animation.drive(scaleTween),
+            child: FadeTransition(
+              opacity: animation.drive(fadeTween),
+              child: child,
+            ),
+          );
+        },
+        transitionDuration: const Duration(milliseconds: 400),
+        reverseTransitionDuration: const Duration(milliseconds: 300),
+      ),
+    );
   }
 
   void _onSearchChanged(String query) {
@@ -382,28 +479,63 @@ class _MapSearchScreenState extends State<MapSearchScreen> {
                       height: MediaQuery.of(context).padding.top,
                       color: Colors.white,
                     ),
-                    // 検索バー
+                    // 検索バーと詳細フィルター
                     Container(
                       padding: const EdgeInsets.all(16),
-                      child: TextField(
-                        controller: _searchController,
-                        decoration: InputDecoration(
-                          hintText: '店舗名、カテゴリ、住所で検索...',
-                          prefixIcon: const Icon(Icons.search),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: Colors.grey[300]!),
+                      child: Row(
+                        children: [
+                          // 検索バー
+                          Expanded(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(25),
+                                border: Border.all(color: Colors.grey[300]!),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    offset: const Offset(0, 2),
+                                    blurRadius: 4,
+                                  ),
+                                ],
+                              ),
+                              child: TextField(
+                                controller: _searchController,
+                                style: const TextStyle(
+                                  fontFamily: 'NotoSansJP',
+                                  fontSize: 16,
+                                  color: Colors.black87,
+                                ),
+                                decoration: InputDecoration(
+                                  hintText: '検索',
+                                  hintStyle: const TextStyle(
+                                    fontFamily: 'NotoSansJP',
+                                    fontSize: 14,
+                                    color: Colors.grey,
+                                  ),
+                                  prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                                  border: InputBorder.none,
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                ),
+                                onChanged: _onSearchChanged,
+                              ),
+                            ),
                           ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: Colors.grey[300]!),
+                          
+                          const SizedBox(width: 12),
+                          
+                          // 詳細フィルターアイコン
+                          GestureDetector(
+                            onTap: _showDetailFilterModal,
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: CustomPaint(
+                                size: const Size(27, 27),
+                                painter: FilterIconPainter(),
+                              ),
+                            ),
                           ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Colors.blue),
-                          ),
-                        ),
-                        onChanged: _onSearchChanged,
+                        ],
                       ),
                     ),
                     
@@ -414,12 +546,13 @@ class _MapSearchScreenState extends State<MapSearchScreen> {
                       child: ListView(
                         scrollDirection: Axis.horizontal,
                         children: [
-                          _buildFilterChip('イタリアン', 'category_italian'),
-                          _buildFilterChip('焼肉', 'category_yakiniku'),
-                          _buildFilterChip('魚介料理', 'category_seafood'),
-                          _buildFilterChip('寿司', 'category_sushi'),
-                          _buildFilterChip('居酒屋', 'category_izakaya'),
-                          _buildFilterChip('焼き鳥', 'category_yakitori'),
+                          _buildFilterChip('現在営業中', 'filter_open_now'),
+                          _buildFilterChip('高評価', 'filter_high_rating'),
+                          _buildFilterChip('肉系', 'category_meat'),
+                          _buildFilterChip('魚系', 'category_seafood'),
+                          _buildFilterChip('麺類', 'category_noodles'),
+                          _buildFilterChip('カフェ', 'category_cafe'),
+                          _buildFilterChip('お手頃', 'filter_affordable'),
                         ],
                       ),
                     ),
@@ -588,11 +721,13 @@ class _MapSearchScreenState extends State<MapSearchScreen> {
                             ),
                             child: TextField(
                               controller: _searchController,
-                              decoration: const InputDecoration(
+                              style: AppIkyuStyles.bodyText,
+                              decoration: InputDecoration(
                                 hintText: 'Search',
-                                prefixIcon: Icon(Icons.search),
+                                hintStyle: AppIkyuStyles.placeholder,
+                                prefixIcon: const Icon(Icons.search),
                                 border: InputBorder.none,
-                                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                               ),
                             ),
                           ),
@@ -897,15 +1032,37 @@ class _MapSearchScreenState extends State<MapSearchScreen> {
     final isSelected = _selectedFilters.contains(filterId);
     return Container(
       margin: const EdgeInsets.only(right: 8),
-      child: FilterChip(
-        label: Text(label),
-        selected: isSelected,
-        onSelected: (selected) => _onFilterTap(filterId),
-        backgroundColor: Colors.grey[100],
-        selectedColor: Colors.blue[100],
-        labelStyle: TextStyle(
-          color: isSelected ? Colors.blue[700] : Colors.grey[700],
-          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+      child: GestureDetector(
+        onTap: () => _onFilterTap(filterId),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected ? Colors.blue : Colors.white,
+            borderRadius: BorderRadius.circular(50),
+            border: Border.all(
+              color: isSelected ? Colors.blue : Colors.grey[300]!,
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                offset: const Offset(0, 1),
+                blurRadius: 2,
+              ),
+            ],
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : Colors.black87,
+                fontSize: 14,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                height: 1.0,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
         ),
       ),
     );
@@ -917,27 +1074,27 @@ class _MapSearchScreenState extends State<MapSearchScreen> {
     return Container(
       width: 280,
       margin: const EdgeInsets.only(right: 16, bottom: 8, top: 8),
-      child: Card(
-        elevation: isSelected ? 4 : 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: isSelected 
-            ? BorderSide(color: Colors.blue[300]!, width: 2)
-            : BorderSide.none,
-        ),
-        child: InkWell(
-          onTap: () {
-            _onRestaurantSelected(restaurant['id'] ?? '');
-          },
-          borderRadius: BorderRadius.circular(16),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: Container(
-              height: 200,
-              child: Stack(
-                children: [
-                  // 背景画像（プレースホルダー）
-                  Positioned.fill(
+      child: AirbnbExpandAnimation(
+        onTap: () {
+          final index = _filteredRestaurants.indexOf(restaurant);
+          _openRestaurantDetailScreen(index);
+        },
+        child: Card(
+            elevation: isSelected ? 4 : 2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: isSelected 
+                ? BorderSide(color: Colors.blue[300]!, width: 2)
+                : BorderSide.none,
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: SizedBox(
+                height: 200,
+                child: Stack(
+                  children: [
+                    // 背景画像（プレースホルダー）
+                    Positioned.fill(
                     child: Container(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
@@ -997,23 +1154,77 @@ class _MapSearchScreenState extends State<MapSearchScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // 店舗名
-                          Text(
-                            restaurant['name'] ?? '',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              shadows: [
-                                Shadow(
-                                  offset: Offset(0, 1),
-                                  blurRadius: 3,
-                                  color: Colors.black.withValues(alpha: 0.5),
+                          // 店舗名と評価を同じ行に
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // 店舗名
+                              Expanded(
+                                child: Text(
+                                  restaurant['name'] ?? '',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                    shadows: [
+                                      Shadow(
+                                        offset: Offset(0, 1),
+                                        blurRadius: 3,
+                                        color: Colors.black.withValues(alpha: 0.5),
+                                      ),
+                                    ],
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              ],
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
+                              ),
+                              
+                              const SizedBox(width: 8),
+                              
+                              // 評価とレビュー数
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.star,
+                                    size: 16,
+                                    color: Colors.amber,
+                                  ),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    '4.5',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                      shadows: [
+                                        Shadow(
+                                          offset: Offset(0, 1),
+                                          blurRadius: 2,
+                                          color: Colors.black.withValues(alpha: 0.5),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    '(127)',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.white.withValues(alpha: 0.9),
+                                      fontWeight: FontWeight.w500,
+                                      shadows: [
+                                        Shadow(
+                                          offset: Offset(0, 1),
+                                          blurRadius: 2,
+                                          color: Colors.black.withValues(alpha: 0.5),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                           
                           const SizedBox(height: 8),
@@ -1037,75 +1248,7 @@ class _MapSearchScreenState extends State<MapSearchScreen> {
                               ),
                             ),
                           ),
-                          
-                          const SizedBox(height: 8),
-                          
-                          // 住所
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.location_on,
-                                size: 14,
-                                color: Colors.white.withValues(alpha: 0.9),
-                              ),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  restaurant['address'] ?? '',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.white.withValues(alpha: 0.9),
-                                    shadows: [
-                                      Shadow(
-                                        offset: Offset(0, 1),
-                                        blurRadius: 2,
-                                        color: Colors.black.withValues(alpha: 0.5),
-                                      ),
-                                    ],
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
                         ],
-                      ),
-                    ),
-                  ),
-                  
-                  // 詳細ボタン
-                  Positioned(
-                    bottom: 16,
-                    right: 16,
-                    child: GestureDetector(
-                      onTap: () => _onRestaurantDetailTap(restaurant['id'] ?? ''),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.9),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.blue[600]!, width: 1),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.info_outline,
-                              size: 16,
-                              color: Colors.blue[600],
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '詳細',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.blue[600],
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
                       ),
                     ),
                   ),
@@ -1138,46 +1281,1400 @@ class _MapSearchScreenState extends State<MapSearchScreen> {
   }
   
   Color _getCategoryColor(String category) {
-    switch (category) {
-      case 'イタリアン':
-        return Colors.orange;
-      case '焼肉':
-        return Colors.red;
-      case '魚介料理':
-        return Colors.blue;
-      case '寿司':
-        return Colors.indigo;
-      case '居酒屋':
-        return Colors.green;
-      case '焼き鳥':
-        return Colors.brown;
-      default:
-        return Colors.grey;
+    // 肉系
+    if (category.contains('焼肉') || category.contains('焼き鳥') || category.contains('ステーキ') || category.contains('ハンバーグ')) {
+      return Colors.red;
     }
+    // 魚系
+    if (category.contains('魚介') || category.contains('寿司') || category.contains('海鮮') || category.contains('刺身')) {
+      return Colors.blue;
+    }
+    // 麺類
+    if (category.contains('ラーメン') || category.contains('うどん') || category.contains('そば') || category.contains('パスタ') || category.contains('イタリアン')) {
+      return Colors.orange;
+    }
+    // カフェ
+    if (category.contains('カフェ') || category.contains('喫茶') || category.contains('コーヒー')) {
+      return Colors.brown;
+    }
+    // 居酒屋
+    if (category.contains('居酒屋')) {
+      return Colors.green;
+    }
+    // その他
+    return Colors.grey;
   }
   
   IconData _getCategoryIcon(String category) {
-    switch (category) {
-      case 'イタリアン':
-        return Icons.local_pizza;
-      case '焼肉':
-        return Icons.outdoor_grill;
-      case '魚介料理':
-        return Icons.set_meal;
-      case '寿司':
-        return Icons.restaurant;
-      case '居酒屋':
-        return Icons.local_bar;
-      case '焼き鳥':
-        return Icons.kebab_dining;
-      default:
-        return Icons.restaurant_menu;
+    // 肉系
+    if (category.contains('焼肉') || category.contains('焼き鳥') || category.contains('ステーキ') || category.contains('ハンバーグ')) {
+      return Icons.outdoor_grill;
     }
+    // 魚系
+    if (category.contains('魚介') || category.contains('寿司') || category.contains('海鮮') || category.contains('刺身')) {
+      return Icons.set_meal;
+    }
+    // 麺類
+    if (category.contains('ラーメン') || category.contains('うどん') || category.contains('そば') || category.contains('パスタ')) {
+      return Icons.ramen_dining;
+    }
+    if (category.contains('イタリアン')) {
+      return Icons.local_pizza;
+    }
+    // カフェ
+    if (category.contains('カフェ') || category.contains('喫茶') || category.contains('コーヒー')) {
+      return Icons.local_cafe;
+    }
+    // 居酒屋
+    if (category.contains('居酒屋')) {
+      return Icons.local_bar;
+    }
+    // その他
+    return Icons.restaurant_menu;
   }
   
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+}
+
+// カスタムフィルターアイコンペインター（横棒スタイル）
+class FilterIconPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.black
+      ..strokeWidth = 2.0
+      ..strokeCap = StrokeCap.round;
+
+    final double width = size.width;
+    final double height = size.height;
+    
+    // 3本の横線を描画
+    final double lineSpacing = height / 4;
+    final double lineWidth = width * 0.7;
+    final double startX = (width - lineWidth) / 2;
+    
+    for (int i = 0; i < 3; i++) {
+      final double y = lineSpacing * (i + 1);
+      canvas.drawLine(
+        Offset(startX, y),
+        Offset(startX + lineWidth, y),
+        paint,
+      );
+      
+      // 各線に丸いスライダーを描画
+      final double circleX = startX + lineWidth * (0.3 + i * 0.2);
+      paint.style = PaintingStyle.fill;
+      canvas.drawCircle(Offset(circleX, y), 2.5, paint);
+      paint.style = PaintingStyle.stroke;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// 詳細フィルターモーダル
+class DetailFilterModal extends StatefulWidget {
+  final List<String> selectedFilters;
+  final Function(List<String>) onFiltersChanged;
+
+  const DetailFilterModal({
+    super.key,
+    required this.selectedFilters,
+    required this.onFiltersChanged,
+  });
+
+  @override
+  State<DetailFilterModal> createState() => _DetailFilterModalState();
+}
+
+class _DetailFilterModalState extends State<DetailFilterModal> {
+  late List<String> _tempFilters;
+
+  @override
+  void initState() {
+    super.initState();
+    _tempFilters = List.from(widget.selectedFilters);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.8,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+        ),
+      ),
+      child: Column(
+        children: [
+          // ハンドル
+          Container(
+            margin: const EdgeInsets.only(top: 8),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          
+          // ヘッダー
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    '詳細フィルター',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+          ),
+          
+          // フィルター内容
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildFilterSection(
+                    '営業状況',
+                    ['filter_open_now'],
+                    ['現在営業中'],
+                  ),
+                  
+                  const SizedBox(height: 24),
+                  
+                  _buildFilterSection(
+                    '評価・価格',
+                    ['filter_high_rating', 'filter_affordable'],
+                    ['高評価', 'お手頃'],
+                  ),
+                  
+                  const SizedBox(height: 24),
+                  
+                  _buildFilterSection(
+                    'カテゴリ',
+                    ['category_meat', 'category_seafood', 'category_noodles', 'category_cafe'],
+                    ['肉系', '魚系', '麺類', 'カフェ'],
+                  ),
+                  
+                  const SizedBox(height: 40),
+                ],
+              ),
+            ),
+          ),
+          
+          // 適用ボタン
+          Container(
+            padding: const EdgeInsets.all(16),
+            child: SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: () {
+                  widget.onFiltersChanged(_tempFilters);
+                  Navigator.pop(context);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                ),
+                child: Text(
+                  '適用 (${_tempFilters.length})',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterSection(String title, List<String> filterIds, List<String> labels) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: List.generate(filterIds.length, (index) {
+            final filterId = filterIds[index];
+            final label = labels[index];
+            final isSelected = _tempFilters.contains(filterId);
+            
+            return GestureDetector(
+              onTap: () {
+                setState(() {
+                  if (isSelected) {
+                    _tempFilters.remove(filterId);
+                  } else {
+                    _tempFilters.add(filterId);
+                  }
+                });
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isSelected ? Colors.blue : Colors.white,
+                  borderRadius: BorderRadius.circular(50),
+                  border: Border.all(
+                    color: isSelected ? Colors.blue : Colors.grey[300]!,
+                  ),
+                ),
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : Colors.black87,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+      ],
+    );
+  }
+}
+
+// PageViewを使った店舗詳細画面コンテナ
+class RestaurantDetailPageView extends StatefulWidget {
+  final List<Map<String, String>> restaurants;
+  final int initialIndex;
+
+  const RestaurantDetailPageView({
+    super.key,
+    required this.restaurants,
+    required this.initialIndex,
+  });
+
+  @override
+  State<RestaurantDetailPageView> createState() => _RestaurantDetailPageViewState();
+}
+
+class _RestaurantDetailPageViewState extends State<RestaurantDetailPageView> {
+  late PageController _pageController;
+  int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+    _pageController = PageController(initialPage: widget.initialIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Stack(
+        children: [
+          // PageView for swiping between restaurants
+          PageView.builder(
+            controller: _pageController,
+            itemCount: widget.restaurants.length,
+            onPageChanged: (index) {
+              setState(() {
+                _currentIndex = index;
+              });
+            },
+            itemBuilder: (context, index) {
+              return AirbnbStyleRestaurantDetail(
+                restaurant: widget.restaurants[index],
+                showBackButton: true,
+                onBackPressed: () => Navigator.pop(context),
+              );
+            },
+          ),
+          
+          // Page indicator
+          if (widget.restaurants.length > 1)
+            Positioned(
+              top: 60,
+              right: 16,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.6),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text(
+                  '${_currentIndex + 1} / ${widget.restaurants.length}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// Google Maps風の店舗詳細画面
+class AirbnbStyleRestaurantDetail extends StatefulWidget {
+  final Map<String, String> restaurant;
+  final bool showBackButton;
+  final VoidCallback? onBackPressed;
+
+  const AirbnbStyleRestaurantDetail({
+    super.key,
+    required this.restaurant,
+    this.showBackButton = false,
+    this.onBackPressed,
+  });
+
+  @override
+  State<AirbnbStyleRestaurantDetail> createState() => _AirbnbStyleRestaurantDetailState();
+}
+
+class _AirbnbStyleRestaurantDetailState extends State<AirbnbStyleRestaurantDetail> with TickerProviderStateMixin {
+  final ScrollController _scrollController = ScrollController();
+  bool _showTitle = false;
+  bool _isSaved = false;
+  late TabController _tabController;
+  int _currentTabIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+    _tabController = TabController(length: 5, vsync: this);
+    _tabController.addListener(() {
+      setState(() {
+        _currentTabIndex = _tabController.index;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.offset > 200 && !_showTitle) {
+      setState(() {
+        _showTitle = true;
+      });
+    } else if (_scrollController.offset <= 200 && _showTitle) {
+      setState(() {
+        _showTitle = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: CustomScrollView(
+        controller: _scrollController,
+        slivers: [
+          // ヘッダー画像とアプリバー
+          SliverAppBar(
+            expandedHeight: 300,
+            pinned: true,
+            backgroundColor: Colors.white,
+            elevation: 0,
+            leading: widget.showBackButton ? Container(
+              margin: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.9),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.black),
+                onPressed: widget.onBackPressed ?? () => Navigator.pop(context),
+              ),
+            ) : null,
+            actions: [
+              Container(
+                margin: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.9),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: IconButton(
+                  icon: Icon(
+                    _isSaved ? Icons.bookmark : Icons.bookmark_border,
+                    color: _isSaved ? Colors.blue : Colors.black,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _isSaved = !_isSaved;
+                    });
+                  },
+                ),
+              ),
+            ],
+            title: _showTitle
+                ? Text(
+                    widget.restaurant['name'] ?? '',
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  )
+                : null,
+            flexibleSpace: FlexibleSpaceBar(
+              background: Stack(
+                fit: StackFit.expand,
+                children: [
+                  // 背景画像
+                  Container(
+                    color: Colors.grey[100],
+                    child: Image.network(
+                      'https://picsum.photos/400/300?random=${widget.restaurant['id']}',
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: Colors.grey[200],
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.restaurant,
+                                  size: 60,
+                                  color: Colors.grey[400],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  '画像を読み込めませんでした',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  // グラデーションオーバーレイ
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    height: 100,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            Colors.black.withOpacity(0.3),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // コンテンツ
+          SliverToBoxAdapter(
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 店舗名とカテゴリ
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                widget.restaurant['name'] ?? '',
+                                style: const TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: _getCategoryColor(widget.restaurant['category'] ?? '').withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  widget.restaurant['category'] ?? '',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: _getCategoryColor(widget.restaurant['category'] ?? ''),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // アクション用のボタン
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () {},
+                            icon: const Icon(Icons.directions, color: Colors.white, size: 18),
+                            label: const Text(
+                              'ルート',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () {},
+                            icon: const Icon(Icons.call, color: Colors.blue, size: 18),
+                            label: const Text(
+                              '電話',
+                              style: TextStyle(
+                                color: Colors.blue,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              side: const BorderSide(color: Colors.blue),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        OutlinedButton(
+                          onPressed: () {},
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            side: BorderSide(color: Colors.grey[300]!),
+                          ),
+                          child: Icon(
+                            Icons.share,
+                            color: Colors.grey[600],
+                            size: 18,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        OutlinedButton(
+                          onPressed: () {
+                            setState(() {
+                              _isSaved = !_isSaved;
+                            });
+                          },
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            side: BorderSide(
+                              color: _isSaved ? Colors.blue : Colors.grey[300]!,
+                            ),
+                          ),
+                          child: Icon(
+                            _isSaved ? Icons.bookmark : Icons.bookmark_border,
+                            color: _isSaved ? Colors.blue : Colors.grey[600],
+                            size: 18,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // 評価とレビュー
+                    Row(
+                      children: [
+                        const Icon(Icons.star, color: Colors.amber, size: 20),
+                        const SizedBox(width: 4),
+                        const Text(
+                          '4.5',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '・',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey[400],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '127件のレビュー',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey[600],
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // タブバー
+                    Container(
+                      decoration: BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(
+                            color: Colors.grey[300]!,
+                            width: 1,
+                          ),
+                        ),
+                      ),
+                      child: TabBar(
+                        controller: _tabController,
+                        isScrollable: true,
+                        labelColor: Colors.blue,
+                        unselectedLabelColor: Colors.grey[600],
+                        labelStyle: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        unselectedLabelStyle: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.normal,
+                        ),
+                        indicatorColor: Colors.blue,
+                        indicatorWeight: 2,
+                        labelPadding: const EdgeInsets.symmetric(horizontal: 8),
+                        tabs: const [
+                          Tab(text: '情報'),
+                          Tab(text: 'メニュー'),
+                          Tab(text: 'レビュー'),
+                          Tab(text: '写真'),
+                          Tab(text: '決済'),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // タブコンテンツ
+                    Container(
+                      height: 600, // 固定の高さを指定
+                      child: TabBarView(
+                        controller: _tabController,
+                        children: [
+                          // 店舗情報タブ
+                          _buildStoreInfoTab(),
+                          // メニュータブ
+                          _buildMenuTab(),
+                          // レビュータブ
+                          _buildReviewTab(),
+                          // 写真タブ
+                          _buildPhotoTab(),
+                          // 決済方法タブ
+                          _buildPaymentTab(),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 40),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoSection(IconData icon, String title, String content) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(
+          icon,
+          size: 24,
+          color: Colors.grey[600],
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                content,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey[700],
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildReviewCard(String name, String rating, String comment) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: Colors.blue[100],
+                child: Text(
+                  name.substring(0, 1),
+                  style: TextStyle(
+                    color: Colors.blue[800],
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        ...List.generate(5, (index) {
+                          return Icon(
+                            index < double.parse(rating) ? Icons.star : Icons.star_border,
+                            size: 16,
+                            color: Colors.amber,
+                          );
+                        }),
+                        const SizedBox(width: 8),
+                        Text(
+                          rating,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            comment,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[700],
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 店舗情報タブの内容
+  Widget _buildStoreInfoTab() {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 住所
+          _buildInfoSection(
+            Icons.location_on_outlined,
+            '住所',
+            widget.restaurant['address'] ?? '',
+          ),
+          const SizedBox(height: 24),
+
+          // 営業時間
+          _buildInfoSection(
+            Icons.access_time_outlined,
+            '営業時間',
+            '11:00 - 22:00 (月-日)',
+          ),
+          const SizedBox(height: 24),
+
+          // 電話番号
+          _buildInfoSection(
+            Icons.phone_outlined,
+            '電話番号',
+            '03-1234-5678',
+          ),
+          const SizedBox(height: 32),
+
+          // 説明
+          const Text(
+            '店舗について',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '美味しい料理と心温まるサービスでお客様をお迎えします。新鮮な食材を使用した自慢の料理をぜひお楽しみください。落ち着いた雰囲気の中で、ゆっくりとお食事をお楽しみいただけます。',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey[700],
+              height: 1.6,
+            ),
+          ),
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+  // メニュータブの内容
+  Widget _buildMenuTab() {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'おすすめメニュー',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          _buildMenuItem('パスタカルボナーラ', '新鮮な卵とベーコンのクリーミーパスタ', '¥1,200'),
+          _buildMenuItem('マルゲリータピザ', 'トマト、モッツァレラ、バジルのクラシック', '¥1,400'),
+          _buildMenuItem('シーザーサラダ', 'ロメインレタスとパルメザンチーズ', '¥800'),
+          _buildMenuItem('ティラミス', '自家製マスカルポーネチーズ使用', '¥650'),
+          _buildMenuItem('ワインセット', '赤・白ワインの飲み比べ', '¥2,800'),
+          
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+  // レビュータブの内容
+  Widget _buildReviewTab() {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'レビュー',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              TextButton(
+                onPressed: () {},
+                child: const Text(
+                  'すべて見る',
+                  style: TextStyle(
+                    color: Colors.blue,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          
+          _buildReviewCard('田中太郎', '4.0', '素晴らしいレストランでした！料理も美味しく、スタッフの対応も丁寧でした。また来たいと思います。'),
+          const SizedBox(height: 16),
+          _buildReviewCard('佐藤花子', '5.0', 'とても美味しい料理でした。特にパスタが絶品でした。雰囲気も良くてデートにぴったりです。'),
+          const SizedBox(height: 16),
+          _buildReviewCard('鈴木一郎', '4.5', 'サービスも料理も最高でした。特別な日にまた利用したいと思います。'),
+          const SizedBox(height: 16),
+          _buildReviewCard('高橋美由紀', '3.5', '雰囲気は良かったですが、料理の提供が少し遅かったです。味は美味しかったです。'),
+          
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+  // 写真タブの内容
+  Widget _buildPhotoTab() {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '店舗の写真',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+              childAspectRatio: 1,
+            ),
+            itemCount: 12,
+            itemBuilder: (context, index) {
+              return Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.grey[200],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    'https://picsum.photos/120/120?random=${widget.restaurant['id']}_$index',
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: Colors.grey[200],
+                        child: Icon(
+                          Icons.photo,
+                          color: Colors.grey[400],
+                          size: 30,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              );
+            },
+          ),
+          
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMenuItem(String name, String description, String price) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          Text(
+            price,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 決済方法タブの内容
+  Widget _buildPaymentTab() {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '利用可能な決済方法',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // クレジットカード
+          _buildPaymentSection(
+            'クレジットカード',
+            [
+              _buildPaymentItem(Icons.credit_card, 'Visa', '利用可能'),
+              _buildPaymentItem(Icons.credit_card, 'Mastercard', '利用可能'),
+              _buildPaymentItem(Icons.credit_card, 'JCB', '利用可能'),
+              _buildPaymentItem(Icons.credit_card, 'American Express', '利用可能'),
+              _buildPaymentItem(Icons.credit_card, 'Diners Club', '利用可能'),
+            ],
+          ),
+          
+          const SizedBox(height: 24),
+          
+          // 電子マネー
+          _buildPaymentSection(
+            '電子マネー',
+            [
+              _buildPaymentItem(Icons.account_balance_wallet, 'PayPay', '利用可能'),
+              _buildPaymentItem(Icons.account_balance_wallet, 'LINE Pay', '利用可能'),
+              _buildPaymentItem(Icons.account_balance_wallet, 'd払い', '利用可能'),
+              _buildPaymentItem(Icons.account_balance_wallet, 'au PAY', '利用可能'),
+              _buildPaymentItem(Icons.account_balance_wallet, '楽天Pay', '利用可能'),
+            ],
+          ),
+          
+          const SizedBox(height: 24),
+          
+          // 交通系ICカード
+          _buildPaymentSection(
+            '交通系ICカード',
+            [
+              _buildPaymentItem(Icons.train, 'Suica', '利用可能'),
+              _buildPaymentItem(Icons.train, 'PASMO', '利用可能'),
+              _buildPaymentItem(Icons.train, 'ICOCA', '利用可能'),
+              _buildPaymentItem(Icons.train, 'manaca', '利用可能'),
+            ],
+          ),
+          
+          const SizedBox(height: 24),
+          
+          // その他
+          _buildPaymentSection(
+            'その他',
+            [
+              _buildPaymentItem(Icons.payments, '現金', '利用可能'),
+              _buildPaymentItem(Icons.account_balance, '銀行振込', '一部対応'),
+              _buildPaymentItem(Icons.card_giftcard, 'ギフトカード', '利用不可'),
+            ],
+          ),
+          
+          const SizedBox(height: 32),
+          
+          // 注意事項
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.blue[50],
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.blue[200]!),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      color: Colors.blue[600],
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '決済に関する注意事項',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.blue[800],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  '・ 一部のクレジットカードは最低利用金額があります\n・ 電子マネーの一部はチャージ手数料がかかる場合があります\n・ 決済方法によっては割引が適用される場合があります',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.blue[700],
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentSection(String title, List<Widget> items) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey[200]!),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            children: items.map((item) => 
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: item,
+              )
+            ).toList(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPaymentItem(IconData icon, String name, String status) {
+    Color statusColor;
+    if (status == '利用可能') {
+      statusColor = Colors.green;
+    } else if (status == '一部対応') {
+      statusColor = Colors.orange;
+    } else {
+      statusColor = Colors.red;
+    }
+
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.grey[100],
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            icon,
+            size: 24,
+            color: Colors.grey[600],
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Text(
+            name,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: Colors.black87,
+            ),
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: statusColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Text(
+            status,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: statusColor,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Color _getCategoryColor(String category) {
+    // 肉系
+    if (category.contains('焼肉') || category.contains('焼き鳥') || category.contains('ステーキ') || category.contains('ハンバーグ')) {
+      return Colors.red;
+    }
+    // 魚系
+    if (category.contains('魚介') || category.contains('寿司') || category.contains('海鮮') || category.contains('刺身')) {
+      return Colors.blue;
+    }
+    // 麺類
+    if (category.contains('ラーメン') || category.contains('うどん') || category.contains('そば') || category.contains('パスタ') || category.contains('イタリアン')) {
+      return Colors.orange;
+    }
+    // カフェ
+    if (category.contains('カフェ') || category.contains('喫茶') || category.contains('コーヒー')) {
+      return Colors.brown;
+    }
+    // 居酒屋
+    if (category.contains('居酒屋')) {
+      return Colors.green;
+    }
+    // その他
+    return Colors.grey;
   }
 }

@@ -6,15 +6,15 @@ import '../models/restaurant.dart';
 import '../services/restaurant_service.dart';
 
 class GoogleMapsScreen extends StatefulWidget {
-  const GoogleMapsScreen({Key? key}) : super(key: key);
+  const GoogleMapsScreen({super.key});
 
   @override
   State<GoogleMapsScreen> createState() => _GoogleMapsScreenState();
 }
 
 class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
-  Completer<GoogleMapController> _controller = Completer();
-  Set<Marker> _markers = {};
+  final Completer<GoogleMapController> _controller = Completer();
+  final Set<Marker> _markers = {};
   List<Restaurant> _restaurants = [];
   Position? _currentPosition;
 

@@ -75,4 +75,22 @@ class Rating {
   });
 
   bool get hasAnyRating => overall != null || food != null || service != null || value != null;
+
+  // 最高評価を取得するメソッド
+  double? get highestRating {
+    final ratings = [overall, food, service, value].where((rating) => rating != null).cast<double>();
+    return ratings.isEmpty ? null : ratings.reduce((a, b) => a > b ? a : b);
+  }
+
+  // 最高評価の項目名を取得するメソッド
+  String? get highestRatingCategory {
+    final highest = highestRating;
+    if (highest == null) return null;
+    
+    if (overall == highest) return '総合';
+    if (food == highest) return '料理';
+    if (service == highest) return 'サービス';
+    if (value == highest) return 'コスパ';
+    return null;
+  }
 }

@@ -39,11 +39,13 @@ dependencies:
   # Navigation & State Management
   go_router: ^16.0.0
   provider: ^6.1.1
+  shared_preferences: ^2.2.2
   
   # Location & Maps
   geolocator: ^14.0.2
   google_maps_flutter: ^2.9.0
   location: ^8.0.1
+  geocoding: ^3.0.0
   webview_flutter: ^4.4.2
   
   # QR Code
@@ -69,6 +71,9 @@ dependencies:
   
   # Icons
   cupertino_icons: ^1.0.8
+  
+  # Fonts
+  google_fonts: ^6.1.0
 
 dev_dependencies:
   flutter_test:
@@ -99,28 +104,19 @@ flutter:
     - assets/logos/
     - assets/data/
 
+  # Fonts for premium design (一休.com style)
+  fonts:
+    - family: NotoSansJP
+      fonts:
+        - asset: fonts/NotoSansJP-Regular.ttf
+          weight: 400
+        - asset: fonts/NotoSansJP-Medium.ttf
+          weight: 500
+        - asset: fonts/NotoSansJP-Bold.ttf
+          weight: 700
+
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 
   # For details regarding adding assets from package dependencies, see
   # https://flutter.dev/to/asset-from-package
-
-  # To add custom fonts to your application, add a fonts section here,
-  # in this "flutter" section. Each entry in this list should have a
-  # "family" key with the font family name, and a "fonts" key with a
-  # list giving the asset and other descriptors for the font. For
-  # example:
-  # fonts:
-  #   - family: Schyler
-  #     fonts:
-  #       - asset: fonts/Schyler-Regular.ttf
-  #       - asset: fonts/Schyler-Italic.ttf
-  #         style: italic
-  #   - family: Trajan Pro
-  #     fonts:
-  #       - asset: fonts/TrajanPro.ttf
-  #       - asset: fonts/TrajanPro_Bold.ttf
-  #         weight: 700
-  #
-  # For details regarding fonts from package dependencies,
-  # see https://flutter.dev/to/font-from-package

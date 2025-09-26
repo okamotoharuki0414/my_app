@@ -8,7 +8,7 @@ import '../services/csv_restaurant_service.dart';
 /// CSVファイルからレストランデータを読み込んでGoogle Mapsに表示
 /// 東京都心を中心とした地図表示
 class CsvGoogleMapsScreen extends StatefulWidget {
-  const CsvGoogleMapsScreen({Key? key}) : super(key: key);
+  const CsvGoogleMapsScreen({super.key});
 
   @override
   State<CsvGoogleMapsScreen> createState() => _CsvGoogleMapsScreenState();
@@ -26,7 +26,7 @@ class _CsvGoogleMapsScreenState extends State<CsvGoogleMapsScreen> {
     zoom: 15.0, // 建物や道が見えるレベル
   );
 
-  Set<Marker> _markers = {};
+  final Set<Marker> _markers = {};
   List<Restaurant> _allRestaurants = [];
   List<Restaurant> _displayRestaurants = [];
   bool _isLoading = true;

@@ -119,7 +119,7 @@ class _FilterDropdownState extends State<FilterDropdown> {
                     ),
                 ],
               );
-            }).toList(),
+            }),
         ],
       ),
     );
@@ -239,7 +239,7 @@ class _SortDropdownState extends State<SortDropdown> {
                     ),
                 ],
               );
-            }).toList(),
+            }),
         ],
       ),
     );
@@ -359,7 +359,7 @@ class _PriceDropdownState extends State<PriceDropdown> {
                     ),
                 ],
               );
-            }).toList(),
+            }),
         ],
       ),
     );
@@ -482,7 +482,7 @@ class _GenreDropdownState extends State<GenreDropdown> {
                     ),
                 ],
               );
-            }).toList(),
+            }),
         ],
       ),
     );

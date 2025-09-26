@@ -1,0 +1,108 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ユーザー基本情報
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read: if request.auth != null;
+    }
+    
+    // ブロック関係のメインコレクション
+    match /blocks/{blockId} {
+      // 読み取り: 自分が関与するブロック関係のみ
+      allow read: if request.auth != null && 
+        (resource.data.blockerUid == request.auth.uid || 
+         resource.data.blockedUid == request.auth.uid);
+      
+      // 書き込み: 自分がブロッカーの場合のみ作成可能
+      allow create: if request.auth != null && 
+        request.auth.uid == resource.data.blockerUid &&
+        // ブロック対象は自分以外
+        resource.data.blockerUid != resource.data.blockedUid &&
+        // 必須フィールドの存在確認
+        resource.data.keys().hasAll(['blockerUid', 'blockedUid', 'createdAt']);
+      
+      // 削除: ブロッカーのみ削除可能
+      allow delete: if request.auth != null && 
+        resource.data.blockerUid == request.auth.uid;
+      
+      // 更新は不可（ブロックは作成・削除のみ）
+      allow update: if false;
+    }
+    
+    // ユーザーごとのブロックターゲット（読み取り最適化用）
+    match /userBlocks/{uid}/targets/{targetUid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+    
+    // ユーザーをブロックしているユーザー一覧（読み取り最適化用）
+    match /userBlockedBy/{uid}/sources/{sourceUid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      // 書き込みはCloud Functionのみ
+      allow write: if false;
+    }
+    
+    // 投稿へのアクセス制御
+    match /posts/{postId} {
+      // ブロック関係にあるユーザーの投稿は見えない
+      allow read: if request.auth != null && 
+        !isBlockedRelation(request.auth.uid, resource.data.authorUid);
+      
+      allow write: if request.auth != null && request.auth.uid == resource.data.authorUid;
+    }
+    
+    // フォロー関係
+    match /follows/{followId} {
+      // ブロック関係にある場合はフォロー不可
+      allow read, write: if request.auth != null && 
+        !isBlockedRelation(resource.data.followerUid, resource.data.followeeUid);
+    }
+    
+    // DM関係
+    match /conversations/{conversationId} {
+      // 参加者間にブロック関係がある場合はアクセス不可
+      allow read, write: if request.auth != null && 
+        request.auth.uid in resource.data.participants &&
+        !hasBlockedParticipant(request.auth.uid, resource.data.participants);
+    }
+    
+    // 通知
+    match /notifications/{notificationId} {
+      // ブロック関係にある相手からの通知は見えない
+      allow read: if request.auth != null && 
+        request.auth.uid == resource.data.recipientUid &&
+        !isBlockedRelation(request.auth.uid, resource.data.senderUid);
+        
+      allow write: if request.auth != null && request.auth.uid == resource.data.senderUid;
+    }
+    
+    // ヘルパー関数
+    function isBlockedRelation(userA, userB) {
+      return exists(/databases/$(database)/documents/blocks/$(userA + '_' + userB)) ||
+             exists(/databases/$(database)/documents/blocks/$(userB + '_' + userA));
+    }
+    
+    function hasBlockedParticipant(currentUid, participants) {
+      return participants.hasAny(function(participant) {
+        return participant != currentUid && isBlockedRelation(currentUid, participant);
+      });
+    }
+  }
+}
+
+// テストケース（コメント形式で記載）
+// 
+// ALLOW cases:
+// - User A can create block: A blocks B
+// - User A can read blocks where A is blocker or blocked
+// - User A can delete blocks where A is blocker
+// - User A cannot see posts from blocked user B
+// - User A cannot follow blocked user B
+//
+// DENY cases:  
+// - User A cannot create block where A is not the blocker
+// - User A cannot block themselves
+// - User A cannot read blocks not involving them
+// - User B cannot delete blocks where B is not the blocker
+// - User A can still see their own posts even if blocked by others

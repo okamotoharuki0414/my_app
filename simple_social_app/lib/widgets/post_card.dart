@@ -182,7 +182,7 @@ class PostCard extends StatelessWidget {
                   onTap: onComment,
                   child: Row(
                     children: [
-                      Container(
+                      SizedBox(
                         width: AppDimensions.iconSize,
                         height: AppDimensions.iconSize,
                         child: Icon(
@@ -203,7 +203,7 @@ class PostCard extends StatelessWidget {
                 // Share button
                 GestureDetector(
                   onTap: onShare,
-                  child: Container(
+                  child: SizedBox(
                     width: AppDimensions.iconSize,
                     height: AppDimensions.iconSize,
                     child: Icon(
@@ -215,7 +215,7 @@ class PostCard extends StatelessWidget {
                 ),
                 const SizedBox(width: AppDimensions.sectionSpacing),
                 // Additional action buttons
-                Container(
+                SizedBox(
                   width: AppDimensions.iconSize,
                   height: AppDimensions.iconSize,
                   child: Icon(
@@ -225,7 +225,7 @@ class PostCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: AppDimensions.sectionSpacing),
-                Container(
+                SizedBox(
                   width: AppDimensions.iconSize,
                   height: AppDimensions.iconSize,
                   child: Icon(

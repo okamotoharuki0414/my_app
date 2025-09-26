@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:ui' as ui;
-import '../constants/app_colors.dart';
 
 class PostOptionsOverlay extends StatefulWidget {
   final VoidCallback onDismiss;

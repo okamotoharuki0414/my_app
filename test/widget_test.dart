@@ -7,7 +7,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 
-import '../lib/main.dart';
+import 'package:yumly/main.dart';
 
 void main() {
   testWidgets('Timeline screen displays correctly', (WidgetTester tester) async {

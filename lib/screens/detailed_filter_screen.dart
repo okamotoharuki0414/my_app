@@ -87,7 +87,7 @@ class _DetailedFilterScreenState extends State<DetailedFilterScreen> {
           children: [
             GestureDetector(
               onTap: () => Navigator.pop(context),
-              child: Container(
+              child: SizedBox(
                 width: 32,
                 height: 32,
                 child: const Icon(

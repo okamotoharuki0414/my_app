@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/post.dart';
 import '../models/comment.dart';
-import '../widgets/post_card.dart';
+import '../widgets/post_card_home.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_dimensions.dart';
 
@@ -100,7 +100,7 @@ class _CommentsScreenState extends State<CommentsScreen> {
       body: Column(
         children: [
           // 元投稿の表示（PostCardコンポーネントを使用）
-          PostCard(
+          PostCardHome(
             post: _currentPost,
             onLike: () {
               setState(() {
@@ -329,14 +329,21 @@ class _CommentsScreenState extends State<CommentsScreen> {
                 child: TextField(
                   controller: _commentController,
                   focusNode: _commentFocusNode,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     hintText: 'コメントを追加...',
-                    hintStyle: TextStyle(color: Colors.grey),
+                    hintStyle: const TextStyle(
+                      fontFamily: 'NotoSansJP',
+                      color: Colors.grey,
+                      fontSize: 14,
+                    ),
                     border: InputBorder.none,
                     isDense: true,
                     contentPadding: EdgeInsets.zero,
                   ),
-                  style: const TextStyle(fontSize: 14),
+                  style: const TextStyle(
+                    fontFamily: 'NotoSansJP',
+                    fontSize: 14,
+                  ),
                   maxLines: null,
                   textInputAction: TextInputAction.send,
                   onSubmitted: (_) => _addComment(),

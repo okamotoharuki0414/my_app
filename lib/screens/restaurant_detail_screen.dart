@@ -19,7 +19,7 @@ class RestaurantDetailScreen extends StatefulWidget {
 }
 
 class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
-  int _currentImageIndex = 0;
+  final int _currentImageIndex = 0;
   final List<String> _images = [
     'https://placehold.co/390x256',
     'https://placehold.co/390x256',

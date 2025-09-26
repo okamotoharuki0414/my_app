@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:convert';
 
 void main() async {
   print('🧪 CSVデータテスト開始...');
@@ -55,9 +54,9 @@ void main() async {
   print('   有効な店舗データ: $validRows件');
   print('   空行: $emptyRows件');
   print('   カテゴリ別統計:');
-  categories.entries.forEach((entry) {
+  for (var entry in categories.entries) {
     print('     ${entry.key}: ${entry.value}件');
-  });
+  }
 }
 
 List<String> _parseCsvLine(String line) {
